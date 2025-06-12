@@ -22,6 +22,7 @@ class AssistantOut(BaseModel):
     class Config:
         # Enable ORM mode to read data from SQLAlchemy models
         orm_mode = True
+        from_attributes=True
 
 # Chat creation input schema
 class CreateChat(BaseModel):
@@ -35,6 +36,7 @@ class ChatOut(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes=True
 
 # Message creation input schema
 class CreateMessage(BaseModel):
@@ -50,3 +52,4 @@ class MessageOut(BaseModel):
     class Config:
         # Enable ORM mode to read data from SQLAlchemy models
         orm_mode = True  
+        from_attributes=True
