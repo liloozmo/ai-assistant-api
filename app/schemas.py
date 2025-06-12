@@ -13,9 +13,28 @@ class CreateAssistant(BaseModel):
     name: str
     instructions: str
 
+# Assistant output schema
+class AssistantOut(BaseModel):
+    id: int
+    name: str
+    instructions: str
+
+    class Config:
+        # Enable ORM mode to read data from SQLAlchemy models
+        orm_mode = True
+
 # Chat creation input schema
 class CreateChat(BaseModel):
     assistant_id: int
+
+# Chat output schema
+class ChatOut(BaseModel):
+    id: int
+    when_created: datetime
+    assistant_id: int
+
+    class Config:
+        orm_mode = True
 
 # Message creation input schema
 class CreateMessage(BaseModel):

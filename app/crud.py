@@ -1,6 +1,8 @@
 from app import models
 from app.schemas import CreateAssistant, CreateChat, CreateMessage, MessageOut
 from sqlalchemy.orm import Session
+from app import gemini
+from fastapi import HTTPException
 
 def create_assistant(db:Session, assistant:CreateAssistant) -> models.Assistant:
     """
@@ -31,7 +33,7 @@ def get_assistant(db: Session, assistant_id: int) -> models.Assistant | None:
     """
     return db.query(models.Assistant).filter(models.Assistant.id == assistant_id).first()
 
-def create_Chat(db: Session, chat:CreateChat) -> models.Chat:
+def create_chat(db: Session, chat:CreateChat) -> models.Chat:
     """
     This function create a new chat in the data base.
     params:
@@ -59,7 +61,7 @@ def get_chat(db: Session, chat_id: int) -> models.Chat | None:
     """
     return db.query(models.Chat).filter(models.Chat.id == chat_id).first()
 
-def create_message(db: Session, message: CreateMessage, writer: str) -> models.Message:
+def create_message(db: Session, message: CreateMessage, writer: str = "user") -> models.Message:
     """
     This function create a new message in the data base.
     params:
@@ -69,15 +71,45 @@ def create_message(db: Session, message: CreateMessage, writer: str) -> models.M
     returns:
         models.Message: The created message object from the database.
     """
-    message_db = models.Message(
-        content = message.content,
-        chat_id = message.chat_id,
-        writer = writer
-    )
-    db.add(message_db)
-    db.commit()
-    db.refresh(message_db)
-    return message_db
+    try:
+        # Save user message
+        user_message_db = models.Message(
+            content=message.content,
+            chat_id=message.chat_id,
+            writer=writer
+        )
+        db.add(user_message_db)
+        db.commit()
+        db.refresh(user_message_db)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to save user message: {str(e)}")
+
+    # Get chat and generate assistant response
+    chat = db.query(models.Chat).filter(models.Chat.id == message.chat_id).first()
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    try:
+        system_instructions = chat.assistant.instructions
+        user_input = message.content
+        gemini_response = gemini.get_gemini_resposne(system_instructions, user_input)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate assistant response: {str(e)}")
+
+    try:
+        assistant_message_db = models.Message(
+            content=gemini_response,
+            chat_id=message.chat_id,
+            writer="assistant"
+        )
+        db.add(assistant_message_db)
+        db.commit()
+        db.refresh(assistant_message_db)
+        return assistant_message_db
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to save assistant message: {str(e)}")
 
 def get_messages(db:Session, chat_id: int) -> list[MessageOut]:
     """
