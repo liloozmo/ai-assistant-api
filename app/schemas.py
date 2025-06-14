@@ -1,11 +1,8 @@
 """
-This module imports the Pydantic `BaseModel` to define data models for request and response validation
-in an API layer. These models specify the structure and types of data expected as input to the API
-and the format of data returned as output. By leveraging Pydantic's validation capabilities, this
-module ensures that the data exchanged between the client and the API adheres to the defined schema,
-helping to maintain data integrity and reduce errors.
+This module imports the Pydantic `BaseModel` to define data models for request
+ and response validation in an API layer. 
 """
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 # Assistant creation input schema
@@ -19,10 +16,7 @@ class AssistantOut(BaseModel):
     name: str
     instructions: str
 
-    class Config:
-        # Enable ORM mode to read data from SQLAlchemy models
-        orm_mode = True
-        from_attributes=True
+    model_config = ConfigDict(from_attributes=True)
 
 # Chat creation input schema
 class CreateChat(BaseModel):
@@ -34,9 +28,7 @@ class ChatOut(BaseModel):
     when_created: datetime
     assistant_id: int
 
-    class Config:
-        orm_mode = True
-        from_attributes=True
+    model_config = ConfigDict(from_attributes=True)
 
 # Message creation input schema
 class CreateMessage(BaseModel):
@@ -49,7 +41,4 @@ class MessageOut(BaseModel):
     content: str
     message_sent_at: datetime
 
-    class Config:
-        # Enable ORM mode to read data from SQLAlchemy models
-        orm_mode = True  
-        from_attributes=True
+    model_config = ConfigDict(from_attributes=True)

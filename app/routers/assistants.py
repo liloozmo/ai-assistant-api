@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app import crud, schemas
 from app.database import get_db
@@ -33,8 +33,5 @@ def get_assistant(
     returns:
         schemas.AssistantOut: The assistant object if found, otherwise raises HTTPException.
     """
-    assistant = crud.get_assistant(db=db, assistant_id=assistant_id)
-    if not assistant:
-        raise HTTPException(status_code=404, detail="Assistant not found")
-    return assistant
+    return crud.get_assistant(db=db, assistant_id=assistant_id)
 

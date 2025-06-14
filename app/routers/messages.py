@@ -1,6 +1,6 @@
 from app import crud, schemas
 from app.database import get_db
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 router = APIRouter()
@@ -20,6 +20,7 @@ def send_message(
     """
     # Return the sent message object from the database
     return crud.create_message(db=db, message=message)
+
 @router.get("/{chat_id}/", response_model= list[schemas.MessageOut])
 def get_messages(
     chat_id: int,

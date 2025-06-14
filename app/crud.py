@@ -47,6 +47,9 @@ def get_assistant(db: Session, assistant_id: int) -> models.Assistant | None:
             logger.warning(f"Assistant with ID {assistant_id} not found")
             raise HTTPException(status_code=404, detail="Assistant not found")
         return result
+    except HTTPException:
+        # Re raise the HTTPException if it was raised in the try block
+        raise
     except Exception as e:
         logger.error(f"Failed to retrieve assistant with ID {assistant_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve assistant: {str(e)}")
@@ -61,6 +64,10 @@ def create_chat(db: Session, chat:CreateChat) -> models.Chat:
         models.Chat: The created chat object from the database.
     """
     try:
+        result = db.query(models.Assistant).filter(models.Assistant.id == chat.assistant_id).first()
+        if not result:
+            logger.warning(f"Assistant with ID {chat.assistant_id} not found")
+            raise HTTPException(status_code=404, detail="Assistant not found")
         chat_db = models.Chat(
             assistant_id = chat.assistant_id
         )
@@ -91,6 +98,24 @@ def get_chat(db: Session, chat_id: int) -> models.Chat | None:
     except Exception as e:
         logger.error(f"Failed to retrieve chat with ID {chat_id}: {str(e)}")
         raise HTTPException(status_code=500,detail= f"Failed to retrieve chat: {str(e)}")
+    
+def get_chats(db:Session) -> list[models.Chat] | None :
+    """
+    This function retrieves all chats from the database.
+    params:
+        db (Session): The database session to use for the operation.
+    returns:
+        list[models.Chat] | None: A list of chat objects if found, otherwise None.
+    """
+    try:
+        result = db.query(models.Chat).all()
+        if not result:
+            logger.warning("No chats found in the database")
+            raise HTTPException(status_code=404, detail="No chats found")
+        return result
+    except Exception as e:
+        logger.error(f"Failed to retrieve chats: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve chats: {str(e)}")
 
 def create_message(db: Session, message: CreateMessage, writer: str = "user") -> models.Message:
     """
@@ -109,6 +134,7 @@ def create_message(db: Session, message: CreateMessage, writer: str = "user") ->
             chat_id=message.chat_id,
             writer=writer
         )
+        # Add the user message to the session and commit to save it in the database
         db.add(user_message_db)
         db.commit()
         db.refresh(user_message_db)
@@ -116,7 +142,7 @@ def create_message(db: Session, message: CreateMessage, writer: str = "user") ->
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to save user message: {str(e)}")
 
-    # Get chat and generate assistant response
+    # Get chat to retrieve system instructions from the assistant.
     chat = db.query(models.Chat).filter(models.Chat.id == message.chat_id).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
@@ -145,7 +171,7 @@ def create_message(db: Session, message: CreateMessage, writer: str = "user") ->
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to save assistant message: {str(e)}")
 
-def get_messages(db:Session, chat_id: int) -> list[MessageOut]:
+def get_messages(db:Session, chat_id: int) -> list[models.Message]:
     """
     This function retrieves all messages from a chat in the database.
     params:
@@ -160,6 +186,9 @@ def get_messages(db:Session, chat_id: int) -> list[MessageOut]:
             logger.warning(f"No messages found for chat ID {chat_id}")
             raise HTTPException(status_code=404, detail="No messages found for this chat")
         return [MessageOut.model_validate(message) for message in messages]
+    except HTTPException:
+        # Re-raise the HTTPException if it was raised in the try block
+        raise
     except Exception as e:
         logger.error(f"Failed to retrieve messages for chat {chat_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve messages: {str(e)}")

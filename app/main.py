@@ -3,21 +3,25 @@ from fastapi import FastAPI, Depends
 from app.routers import assistants, chats, messages
 from google import genai
 import logging
+from contextlib import asynccontextmanager
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-# Initialize the fastapi app
-app = FastAPI()
 
-@app.on_event("startup")
-def startup_event():
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
     logger.info("Starting up the application...")
-
-@app.on_event("shutdown")
-def shutdown_event():
+    yield
+    # Shutdown
     logger.info("Shutting down the application...")
+
+# Initialize the fastapi app
+app = FastAPI(lifespan=lifespan)
+
 
 # Include the routers for different endpoints
 app.include_router(assistants.router, prefix="/assistants", tags=["assistants"])
