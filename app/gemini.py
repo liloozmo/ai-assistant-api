@@ -24,3 +24,4 @@ def get_gemini_resposne(system_instructions: str, user_input: str) -> str:
             contents = [user_input]
     )
     return response.text
+
