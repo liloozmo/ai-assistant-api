@@ -135,7 +135,7 @@ class TestCRUD:
         with pytest.raises(HTTPException):
             crud.get_chats(db)
 
-    @patch("app.crud.gemini.get_gemini_resposne", return_value="Hello user!")
+    @patch("app.crud.gemini.get_gemini_response", return_value="Hello user!")
     def test_create_message_success(self, mock_gemini):
         """
         Test the creation of a message with a valid chat ID and content.
