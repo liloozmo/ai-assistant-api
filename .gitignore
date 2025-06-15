@@ -6,7 +6,6 @@ __pycache__/
 venv/
 
 # Environment variables
-.env
 app.db
 
 # VS Code
