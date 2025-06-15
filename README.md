@@ -79,7 +79,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. Apply Database Migrations
+### 4. Set up database: apply database migrations
 ```bash
 alembic upgrade head
 ```
@@ -88,6 +88,10 @@ alembic upgrade head
 ```bash
 uvicorn app.main:app --reload
 ```
+
+To intercat with the app, use Swagger UI in [http://localhost:8000/docs](http://localhost:8000/docs) once the app is running.
+
+
 
 
 ### Running Tests
@@ -108,8 +112,7 @@ This will test:
 
 Once the app is running you can manually test via:
 
-### Swagger UI:
-[http://localhost:8000/docs](http://localhost:8000/docs)
+
 
 
 ### Loom video
