@@ -32,14 +32,14 @@ def create_assistant(db:Session, assistant:CreateAssistant) -> models.Assistant:
         logger.error(f"Failed to create assistant: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to create assistant: {str(e)}")
     
-def get_assistant(db: Session, assistant_id: int) -> models.Assistant | None:
+def get_assistant(db: Session, assistant_id: int) -> models.Assistant:
     """
     This function retrieves an assistant from the database by its ID.
     params:
         db (Session): The database session to use for the operation.
         assistant_id (int): The ID of the assistant to retrieve.
     returns:
-        models.Assistant | None: The assistant object if found, otherwise None.
+        models.Assistant: The assistant object if found, otherwise raises an HTTPException.
     """
     try:
         result =  db.query(models.Assistant).filter(models.Assistant.id == assistant_id).first()
@@ -64,9 +64,10 @@ def create_chat(db: Session, chat:CreateChat) -> models.Chat:
         models.Chat: The created chat object from the database.
     """
     try:
+        # Check if the assistant exists before creating the chat
         result = db.query(models.Assistant).filter(models.Assistant.id == chat.assistant_id).first()
         if not result:
-            logger.warning(f"Assistant with ID {chat.assistant_id} not found")
+            logger.warning(f"Assistant with ID {chat.assistant_id} not found when creating chat")
             raise HTTPException(status_code=404, detail="Assistant not found")
         chat_db = models.Chat(
             assistant_id = chat.assistant_id
@@ -74,20 +75,23 @@ def create_chat(db: Session, chat:CreateChat) -> models.Chat:
         db.add(chat_db)
         db.commit()
         db.refresh(chat_db)
+        logger.info(f"Chat created with ID: {chat_db.id} for assistant ID: {chat.assistant_id}")
         return chat_db
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to create chat: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to create chat: {str(e)}")
 
-def get_chat(db: Session, chat_id: int) -> models.Chat | None:
+def get_chat(db: Session, chat_id: int) -> models.Chat:
     """
     This function retrieves a chat from the database by its ID.
     params:
         db (Session): The database session to use for the operation.
         chat_id (int): The ID of the chat to retrieve.
     returns:
-        models.Chat | None: The chat object if found, otherwise None.
+        models.Chat: The chat object if found, otherwise raise an HTTP exception.
     """
     try:
         result =  db.query(models.Chat).filter(models.Chat.id == chat_id).first()
@@ -95,17 +99,21 @@ def get_chat(db: Session, chat_id: int) -> models.Chat | None:
             logger.warning(f"Chat with ID {chat_id} not found")
             raise HTTPException(status_code=404, detail="Chat not found")
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to retrieve chat with ID {chat_id}: {str(e)}")
         raise HTTPException(status_code=500,detail= f"Failed to retrieve chat: {str(e)}")
     
-def get_chats(db:Session,skip:int=0, limit:int=10) -> list[models.Chat] | None :
+def get_chats(db:Session,limit:int=10,skip:int=0) -> list[models.Chat]:
     """
     This function retrieves all chats from the database.
     params:
         db (Session): The database session to use for the operation.
+        limit (int): The maximum number of chats to retrieve.
+        skip (int): The number of chats to skip (offset).
     returns:
-        list[models.Chat] | None: A list of chat objects if found, otherwise None.
+        list[models.Chat]: A list of chat objects if found, otherwise raises an HTTPException.
     """
     try:
         # Get the 'limit' newest (creation time) chats
@@ -120,13 +128,16 @@ def get_chats(db:Session,skip:int=0, limit:int=10) -> list[models.Chat] | None :
             logger.warning("No chats found in the database")
             raise HTTPException(status_code=404, detail="No chats found")
         return result
+    except HTTPException:
+        # Re raise the HTTPException if raised in the try block to get 404 and not 500.
+        raise
     except Exception as e:
         logger.error(f"Failed to retrieve chats: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve chats: {str(e)}")
 
 def create_message(db: Session, message: CreateMessage, writer: str = "user") -> models.Message:
     """
-    This function create a new message in the data base.
+    This function creates a new message in the database.
     params:
         db (Session): The database session to use for the operation.
         message (CreateMessage): The message data to be created.
@@ -145,25 +156,28 @@ def create_message(db: Session, message: CreateMessage, writer: str = "user") ->
         db.add(user_message_db)
         db.commit()
         db.refresh(user_message_db)
+        logger.info(f"User message saved successfully for chat ID {message.chat_id}")
     except Exception as e:
         db.rollback()
+        logger.error(f"Failed to save user message: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save user message: {str(e)}")
 
     # Get chat to retrieve system instructions from the assistant.
     chat = db.query(models.Chat).filter(models.Chat.id == message.chat_id).first()
     if not chat:
+        logger.warning(f"Chat with ID {message.chat_id} not found before generating assistant response")
         raise HTTPException(status_code=404, detail="Chat not found")
-
+    # Get chat's assistant instructions and user's input to pass to Gemini LLM
     try:
         system_instructions = chat.assistant.instructions
         user_input = message.content
         logger.info("Calling Gemini with system instructions and user input")
-        gemini_response = gemini.get_gemini_resposne(system_instructions, user_input)
+        gemini_response = gemini.get_gemini_response(system_instructions, user_input)
         logger.info("Gemini response received successfully")
     except Exception as e:
         logger.error(f"Failed to generate assistant response: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate assistant response: {str(e)}")
-
+    # Save assistant message to the database
     try:
         assistant_message_db = models.Message(
             content=gemini_response,
@@ -173,22 +187,27 @@ def create_message(db: Session, message: CreateMessage, writer: str = "user") ->
         db.add(assistant_message_db)
         db.commit()
         db.refresh(assistant_message_db)
+        logger.info(f"Assistant message saved successfully for chat ID {message.chat_id}")
         return assistant_message_db
     except Exception as e:
         db.rollback()
+        logger.error(f"Failed to save assistant message: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save assistant message: {str(e)}")
 
-def get_messages(db:Session, chat_id: int,skip:int=0, limit:int=10) -> list[models.Message]:
+def get_messages(db:Session, chat_id: int,limit:int=10, skip:int=0) -> list[models.Message]:
     """
     This function retrieves all messages from a chat in the database.
     params:
         db (Session): The database session to use for the operation.
         chat_id (int): The ID of the chat to retrieve messages from.
+        limit (int): The maximum number of messages to retrieve.
+        skip (int): The number of messages to skip (offset).
     returns:
         list[MessageOut]: A list of message objects from the database.
     """
     try:
-        # Get the 'limit' messages in chat (chat id) oldest to newest
+        # Get the 'limit' messages in chat (chat id) newest to oldest, 
+        # then reverse them to simulate real chat order (newest is in the bottom).
         messages = (
             db.query(models.Message)
             .filter(models.Message.chat_id == chat_id)
