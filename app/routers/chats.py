@@ -1,6 +1,6 @@
 from app import crud, schemas
 from app.database import get_db
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 router = APIRouter()
@@ -32,13 +32,19 @@ def get_chat(chat_id: int, db: Session = Depends(get_db)) -> schemas.ChatOut:
     return crud.get_chat(db=db, chat_id=chat_id)
 
 @router.get("/", response_model=list[schemas.ChatOut])
-def get_chats(db: Session = Depends(get_db)) -> list[schemas.ChatOut]:
+def get_chats(
+    db: Session = Depends(get_db),
+    limit: int= Query(10,ge=1,le=100),
+    skip:int= Query(0,ge=0)) -> list[schemas.ChatOut]:
+
     """
     Get endpoint to retrieve all chats.
     params:
         db (Session): The database session to use for the operation.
+        limit (int): The number of chats to retrieve
+        skip (int): The number of chats to skip (offset)
     returns:
         list[models.Chat]: A list of all chat objects from the database.
     """
-    # Return a list of all chat objects from the database
-    return crud.get_chats(db=db)
+    # Return a list of chat objects from the database base on the query
+    return crud.get_chats(db=db,limit=limit,skip=skip)

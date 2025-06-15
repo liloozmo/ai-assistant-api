@@ -99,7 +99,7 @@ def get_chat(db: Session, chat_id: int) -> models.Chat | None:
         logger.error(f"Failed to retrieve chat with ID {chat_id}: {str(e)}")
         raise HTTPException(status_code=500,detail= f"Failed to retrieve chat: {str(e)}")
     
-def get_chats(db:Session) -> list[models.Chat] | None :
+def get_chats(db:Session,skip:int=0, limit:int=10) -> list[models.Chat] | None :
     """
     This function retrieves all chats from the database.
     params:
@@ -108,7 +108,14 @@ def get_chats(db:Session) -> list[models.Chat] | None :
         list[models.Chat] | None: A list of chat objects if found, otherwise None.
     """
     try:
-        result = db.query(models.Chat).all()
+        # Get the 'limit' newest (creation time) chats
+        result = (
+            db.query(models.Chat)
+            .order_by(models.Chat.when_created.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+            )
         if not result:
             logger.warning("No chats found in the database")
             raise HTTPException(status_code=404, detail="No chats found")
@@ -171,7 +178,7 @@ def create_message(db: Session, message: CreateMessage, writer: str = "user") ->
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to save assistant message: {str(e)}")
 
-def get_messages(db:Session, chat_id: int) -> list[models.Message]:
+def get_messages(db:Session, chat_id: int,skip:int=0, limit:int=10) -> list[models.Message]:
     """
     This function retrieves all messages from a chat in the database.
     params:
@@ -181,10 +188,19 @@ def get_messages(db:Session, chat_id: int) -> list[models.Message]:
         list[MessageOut]: A list of message objects from the database.
     """
     try:
-        messages = db.query(models.Message).filter(models.Message.chat_id == chat_id).all()
+        # Get the 'limit' messages in chat (chat id) oldest to newest
+        messages = (
+            db.query(models.Message)
+            .filter(models.Message.chat_id == chat_id)
+            .order_by(models.Message.message_sent_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+            )
         if not messages:
             logger.warning(f"No messages found for chat ID {chat_id}")
             raise HTTPException(status_code=404, detail="No messages found for this chat")
+        messages.reverse()
         return [MessageOut.model_validate(message) for message in messages]
     except HTTPException:
         # Re-raise the HTTPException if it was raised in the try block

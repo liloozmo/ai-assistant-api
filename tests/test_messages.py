@@ -48,7 +48,10 @@ def test_get_messages(mocked_get_messages, message_out):
     # Assert
     assert response.status_code == 200
     assert response.json() == [sample_output]
-    mocked_get_messages.assert_called_once_with(chat_id=1, db=mocked_get_messages.call_args[1]["db"])
+    mocked_get_messages.assert_called_once_with(
+        chat_id=1, db=mocked_get_messages.call_args[1]["db"],
+        limit = 10, skip= 0
+        )
 
 # Test for GET /messages/{chat_id}/ 
 @patch("app.routers.messages.crud.get_messages")
@@ -63,4 +66,7 @@ def test_get_messages_empty(mocked_get_messages):
     # Assert
     assert response.status_code == 200
     assert response.json() == []
-    mocked_get_messages.assert_called_once_with(chat_id=1, db=mocked_get_messages.call_args[1]["db"])
+    mocked_get_messages.assert_called_once_with(
+        chat_id=1, db=mocked_get_messages.call_args[1]["db"],
+        limit = 10, skip = 0
+        )

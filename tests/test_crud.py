@@ -105,11 +105,20 @@ class TestCRUD:
         """
         # Arrange
         db = MagicMock()
-        db.query().all.return_value = [models.Chat(id=1), models.Chat(id=2)]
+        query = db.query.return_value
+        order = query.order_by.return_value
+        offset = order.offset.return_value
+        limit = offset.limit.return_value
+        limit.all.return_value = [models.Chat(id=1), models.Chat(id=2)]
+
         # Act
-        result = crud.get_chats(db)
+        result = crud.get_chats(db, limit=10, skip=0)  # make sure to pass limit & skip
+
         # Assert
         assert len(result) == 2
+        assert isinstance(result[0], models.Chat)
+        assert result[0].id == 1
+        assert result[1].id == 2
 
     def test_get_chats_none(self):
         """
@@ -117,7 +126,11 @@ class TestCRUD:
         """
         # Arrange
         db = MagicMock()
-        db.query().all.return_value = []
+        query = db.query.return_value
+        order = query.order_by.return_value
+        offset = order.offset.return_value
+        limit = offset.limit.return_value
+        limit.all.return_value = []
         # Act & Assert
         with pytest.raises(HTTPException):
             crud.get_chats(db)
@@ -147,11 +160,24 @@ def test_get_messages_success():
     """
     # Arrange
     db = MagicMock()
-    db.query().filter().all.return_value = [
-        models.Message(id=1, writer="user", chat_id=1, content="hi", message_sent_at=datetime(2025,1,1))
+    query = db.query.return_value
+    filter = query.filter.return_value
+    order = filter.order_by.return_value
+    offset = order.offset.return_value
+    limit = offset.limit.return_value
+    limit.all.return_value = [
+        models.Message(
+            id=1,
+            writer="user",
+            chat_id=1,
+            content="hi",
+            message_sent_at=datetime(2025, 1, 1)
+        )
     ]
+
     # Act
-    result = crud.get_messages(db, chat_id=1)
+    result = crud.get_messages(db, chat_id=1, limit=10, skip=0)
+
     # Assert
     assert isinstance(result, list)
     assert result[0].content == "hi"
@@ -163,7 +189,12 @@ def test_get_messages_none():
     """
     # Arrange
     db = MagicMock()
-    db.query().filter().all.return_value = []
+    query = db.query.return_value
+    filter = query.filter.return_value
+    order = filter.order_by.return_value
+    offset = order.offset.return_value
+    limit = offset.limit.return_value
+    limit.all.return_value = []
     # Act & Assert
 
     with pytest.raises(HTTPException) as exc_info:

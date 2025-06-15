@@ -66,4 +66,7 @@ def test_get_chats(mocked_get_chats, chat_out):
     # Assert
     assert response.status_code == 200
     assert response.json() == [sample_output]
-    mocked_get_chats.assert_called_once_with(db=mocked_get_chats.call_args[1]["db"])
+    mocked_get_chats.assert_called_once_with(
+        db=mocked_get_chats.call_args[1]["db"],
+        limit = 10, skip = 0
+    )
