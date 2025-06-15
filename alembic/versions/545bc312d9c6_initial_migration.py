@@ -19,7 +19,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Step 1: Create new table with corrected column name
     op.create_table(
         'chats_new',
         sa.Column('id', sa.Integer(), primary_key=True),
@@ -28,16 +27,15 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['assistant_id'], ['assistants.id']),
     )
 
-    # Step 2: Copy data over from old table, renaming column
-    op.execute("""
-        INSERT INTO chats_new (id, when_created, assistant_id)
-        SELECT id, when_created, "Assistant_id" FROM chats;
-    """)
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    if 'chats' in inspector.get_table_names():
+        conn.execute("""
+            INSERT INTO chats_new (id, when_created, assistant_id)
+            SELECT id, when_created, "Assistant_id" FROM chats;
+        """)
+        op.drop_table('chats')
 
-    # Step 3: Drop old table
-    op.drop_table('chats')
-
-    # Step 4: Rename new table to old name
     op.rename_table('chats_new', 'chats')
 
 

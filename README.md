@@ -65,20 +65,26 @@ AI_ASISTANT_API/
 ### 1. Clone the Repository
 ```bash
 git clone https://github.com/your-username/AI_ASSISTANT_API.git
-cd AI_ASSISTANT_API
-```
+cd ai-assistant-api
 
-### 2. Install Dependencies
+```
+### 2. Create virtual environment
+```bash
+python3 -m venv venv
+source venv/bin/activate
+
+```
+### 3. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Apply Database Migrations
+### 4. Apply Database Migrations
 ```bash
 alembic upgrade head
 ```
 
-### 4. Run the Application
+### 5. Run the Application
 ```bash
 uvicorn app.main:app --reload
 ```
