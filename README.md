@@ -55,7 +55,7 @@ AI_ASISTANT_API/
 │
 │
 ├── requirements.txt         
-├── .env                      
+├── .env.example                     
 ├── README.md 
 
 ```
