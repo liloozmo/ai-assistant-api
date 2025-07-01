@@ -79,12 +79,19 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. Set up database: apply database migrations
+### 4. API Key Setup
+
+1. Rename the .env.example file to .env.
+2. Create a Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+3. Paste your API key into the .env file.
+
+
+### 5. Set up database: apply database migrations
 ```bash
 alembic upgrade head
 ```
 
-### 5. Run the Application
+### 6. Run the Application
 ```bash
 uvicorn app.main:app --reload
 ```
